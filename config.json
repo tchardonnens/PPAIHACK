@@ -1,0 +1,14 @@
+{
+    "model": {
+      "checkpoint_path": "checkpoints/best_model.pt",
+      "safetensors_path": "eeg_classifier.safetensors"
+    },
+    "data": {
+      "dataset_name": "JLB-JLB/seizure_eeg_eval",
+      "batch_size": 32,
+      "num_workers": 2
+    },
+    "inference": {
+      "device": "cpu"
+    }
+  }
