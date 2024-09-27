@@ -1,6 +1,5 @@
 {
     "model": {
-      "checkpoint_path": "checkpoints/best_model.pt",
       "safetensors_path": "eeg_classifier.safetensors"
     },
     "data": {
