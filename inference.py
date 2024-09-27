@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from datasets import load_dataset
 from torchvision import transforms
@@ -6,35 +7,40 @@ from sklearn.metrics import classification_report, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 import json
+from safetensors.torch import load_file
 from torch.utils.data import DataLoader, Dataset
 
 
-# Load the model architecture
+# Define the EEGNet model
+class EEGNet(nn.Module):
+    def __init__(self, num_classes=3):
+        super(EEGNet, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d((1, 1))
+        )
+        self.classifier = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
+    
+# Load configuration
 with open('config.json', 'r') as file:
     config = json.load(file)
 
-# Recreate the model architecture
-class EEGClassifier(torch.nn.Module):
-    def __init__(self):
-        super(EEGClassifier, self).__init__()
-        for layer in config['layers']:
-            if layer['type'] == 'Conv2d':
-                setattr(self, layer['name'], torch.nn.Conv2d(**layer['parameters']))
-            elif layer['type'] == 'Linear':
-                setattr(self, layer['name'], torch.nn.Linear(**layer['parameters']))
-            elif layer['type'] == 'MaxPool2d':
-                setattr(self, layer['name'], torch.nn.MaxPool2d(**layer['parameters']))
-
-    def forward(self, x):
-        for layer in config['layers']:
-            if layer['type'] in ['Conv2d', 'Linear']:
-                x = torch.relu(getattr(self, layer['name'])(x))
-            elif layer['type'] == 'MaxPool2d':
-                x = getattr(self, layer['name'])(x)
-        return x
-    
-model = EEGClassifier()
-model.load_state_dict(torch.load(config['model']['safetensors_path']))
+# Load the model
+model = EEGNet()
+model.load_state_dict(load_file(config['model']['safetensors_path']))
 model.to(config['inference']['device'])
 model.eval()
 
@@ -44,8 +50,6 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
-
-dataset = load_dataset("JLB-JLB/seizure_eeg_dev")
 
 # Custom dataset class
 class SeizureEEGDataset(Dataset):
@@ -67,6 +71,7 @@ class SeizureEEGDataset(Dataset):
         
         return image, label
     
+dataset = load_dataset("JLB-JLB/seizure_eeg_dev")
 test_dataset = SeizureEEGDataset(dataset, split='test', transform=transform)
 test_loader = DataLoader(test_dataset, batch_size=config['data']['batch_size'], 
                          shuffle=False, num_workers=config['data']['num_workers'])
