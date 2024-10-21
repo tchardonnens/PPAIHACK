@@ -57,6 +57,12 @@ The dataset supports our efforts in building and validating EEG-based AI models 
 
 The Neurocrypt demo illustrates the end-to-end workflow, from EEG data encryption on a wearable device to FHE-encrypted machine learning analysis on the cloud.
 
+
+
+https://github.com/user-attachments/assets/4f78912f-3376-4b3f-be77-baa3e60f7b7c
+
+
+
 ## 🏅 Team Members
 
 - Simon Coessens
